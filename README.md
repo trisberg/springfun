@@ -2,7 +2,7 @@
 
 POC of a CLI for creating Spring Functions to run on Knative
 
-### Prerequisites:
+## Prerequisites:
 
 * a [Kubernetes](https://kubernetes.io/) cluster and the [kubectl CLI](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 * [curl](https://curl.haxx.se/) command
@@ -12,6 +12,10 @@ POC of a CLI for creating Spring Functions to run on Knative
 * [pack CLI](https://buildpacks.io/docs/install-pack/) from the Cloud Native Buildpacks project
 * [Knative Serving](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-serving-component) installed with the networking layer for Contour
 * [Knative Eventing](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-eventing-component) installed
+
+## Features
+
+The `springfun` command can initialize Spring Boot based functions that will run on Knative serving. It also integrates with Knative Eventing and can initialize functions that can handle CloudEvents via a Trigger. It uses the CloudEvents Java SDK for managing the CloudEvents. If the Knative EventType resource specifies a JSON schema it will be used for generating a Java class for the CloudEvent payload.
 
 ## Installation
 
