@@ -71,6 +71,8 @@ Look up ingress:
 INGRESS=$(kubectl get --namespace contour-external service/envoy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
+Invoke function with some data:
+
 ```
 curl $INGRESS -H "Host: upper.default.example.com" -H "Content-Type: text/plain" -d hello && echo
 ```
