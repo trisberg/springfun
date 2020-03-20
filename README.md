@@ -297,3 +297,9 @@ Check the logs in a separate terminal window:
 ```
 kubectl logs -c user-container -l serving.knative.dev/configuration=spring-event
 ```
+
+### Delete the function
+
+```
+springfun delete spring-event
+```
