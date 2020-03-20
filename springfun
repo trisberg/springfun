@@ -1,0 +1,241 @@
+#!/bin/bash
+
+VERSION="0.0.1"
+
+function print_usage() {
+cat <<EOF
+springfun is for Spring Functions on Knative
+version $VERSION
+
+Commands:
+  init         Initialize a function
+  build        Build a function container
+  run          Run a function container
+  delete       Delete a function container
+
+EOF
+}
+
+function init() {
+  if [[ $NAME == "" ]]; then
+    echo "ERROR: function name must be specified"
+    exit 1
+  fi
+  if [[ -d $NAME ]]; then
+    echo "ERROR: the $NAME function already exists"
+    exit 1
+  fi
+  if [[ $CE_SCHEMA == "" ]]; then
+    if [[ $CE_TYPE != "" ]]; then
+      echo "looking up schema via type $CE_TYPE"
+      CE_SCHEMA="$(kubectl get eventtype $CE_TYPE -n default -ojsonpath='{.spec.schema}')"
+      if [[ $CE_SCHEMA == "" ]]; then
+        echo "ERROR: unable to find schema, please use '--ce-schema' option"
+        exit 1
+      fi
+      echo "using schema: $CE_SCHEMA"
+    fi
+  fi
+  
+  # start.spring.io
+  curl https://start.spring.io/starter.tgz \
+   -d dependencies=webflux,actuator,cloud-function \
+   -d language=java \
+   -d javaVersion=11 \
+   -d bootVersion=2.2.5.RELEASE \
+   -d type=maven-project \
+   -d groupId=com.example \
+   -d artifactId=$NAME \
+   -d name=$NAME \
+   -d packageName=com.example.$NAME \
+   -d baseDir=$NAME | tar -xzvf -
+
+  if [[ ! -z "$CE_SCHEMA" ]]; then
+    # CE dep
+    mv $NAME/pom.xml $NAME/pom.xml.tmp
+    sed "s/^	<\/dependencies>/		<dependency>+			<groupId>io.cloudevents<\/groupId>+			<artifactId>cloudevents-api<\/artifactId>+			<version>1.2.0<\/version>+		<\/dependency>+	<\/dependencies>/" $NAME/pom.xml.tmp | tr '+' '\n' > $NAME/pom.xml
+    rm $NAME/pom.xml.tmp
+
+    # jsonschema2pojo
+    mv $NAME/pom.xml $NAME/pom.xml.tmp
+    sed "s/^		<\/plugins>/			<plugin>+				<groupId>org.jsonschema2pojo<\/groupId>+				<artifactId>jsonschema2pojo-maven-plugin<\/artifactId>+				<version>1.0.2<\/version>+				<configuration>+					<sourceDirectory>\${basedir}\/src\/main\/resources\/schema<\/sourceDirectory>+					<targetPackage>com.example.types<\/targetPackage>+				<\/configuration>+				<executions>+					<execution>+						<goals>+							<goal>generate<\/goal>+						<\/goals>+					<\/execution>+				<\/executions>+			<\/plugin>+		<\/plugins>/" $NAME/pom.xml.tmp | tr '+' '\n' > $NAME/pom.xml
+    rm $NAME/pom.xml.tmp
+
+    # schema
+    mkdir -p $NAME/src/main/resources/schema
+    pushd $PWD
+    cd $NAME/src/main/resources/schema/
+    wget $CE_SCHEMA
+    SCHEMA_FILE=$(ls)
+    popd
+
+    # mapper
+    mkdir -p $NAME/src/main/java/com/springdeveloper/support/cloudevents
+    curl https://raw.githubusercontent.com/trisberg/cloud-event-mapper/master/src/main/java/com/springdeveloper/support/cloudevents/CloudEventMapper.java \
+      -o $NAME/src/main/java/com/springdeveloper/support/cloudevents/CloudEventMapper.java
+  fi
+
+  # add fun bean
+  pushd $PWD
+  cd $NAME/src/main/java/com/example/${NAME//-}
+  MAIN_FILE=$(ls)
+  mv $MAIN_FILE $MAIN_FILE.tmp
+  sed -i .bak "s/import org.springframework.boot.SpringApplication;/import java.util.function.Function;++import org.springframework.boot.SpringApplication;/" $MAIN_FILE.tmp
+  sed -i .bak "s/import org.springframework.boot.autoconfigure.SpringBootApplication;/import org.springframework.boot.autoconfigure.SpringBootApplication;+import org.springframework.context.annotation.Bean;/" $MAIN_FILE.tmp
+  sed -i .bak "s/	public static void main(String\[\] args) {/	@Bean+	public Function<String, String> fun() {+		return (in) -> {+			return in;+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
+  cat $MAIN_FILE.tmp | tr '+' '\n' > $MAIN_FILE
+  rm $MAIN_FILE.tmp
+  rm $MAIN_FILE.tmp.bak
+  popd
+
+  # resolve deps
+  cd $NAME
+  ./mvnw compile
+  cd ..
+
+  # knative service
+cat <<EOF > $NAME/knative-service.yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: $NAME
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - image: $NAME
+EOF
+
+if [[ ! -z "$CE_SCHEMA" ]]; then
+  # knative trigger
+cat <<EOF > $NAME/knative-trigger.yaml
+apiVersion: eventing.knative.dev/v1beta1
+kind: Trigger
+metadata:
+  name: $NAME
+spec:
+  filter:
+    attributes:
+      type: $CE_TYPE
+  subscriber:
+    ref:
+     apiVersion: v1
+     kind: Service
+     name: $NAME
+EOF
+fi
+
+  # skaffold
+  cd $NAME
+  skaffold init --skip-build --force=true
+  mv ./skaffold.yaml ./skaffold.yaml.tmp
+  sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpack:+        builder: 'cloudfoundry\/cnb:bionic'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
+  rm ./skaffold.yaml.tmp
+  cd ..
+
+}  
+
+function build() {
+  if [[ $NAME == "" ]]; then
+    echo "ERROR: function name must be specified"
+    exit 1
+  fi
+  if [[ ! -d $NAME ]]; then
+    echo "ERROR: can not find the $NAME function"
+    exit 1
+  fi
+  pushd $PWD
+  cd $NAME
+  skaffold build
+  popd
+}  
+
+function run() {
+  if [[ $NAME == "" ]]; then
+    echo "ERROR: function name must be specified"
+    exit 1
+  fi
+  if [[ ! -d $NAME ]]; then
+    echo "ERROR: can not find the $NAME function"
+    exit 1
+  fi
+  pushd $PWD
+  cd $NAME
+  skaffold run
+  popd
+}  
+
+function delete() {
+  if [[ $NAME == "" ]]; then
+    echo "ERROR: function name must be specified"
+    exit 1
+  fi
+  if [[ ! -d $NAME ]]; then
+    echo "ERROR: can not find the $NAME function"
+    exit 1
+  fi
+  pushd $PWD
+  cd $NAME
+  skaffold delete
+  popd
+}  
+
+if [[ $1 == "--help" || $1 == "-h" ]] ; then
+    print_usage
+    exit 0
+fi
+
+if [[ $# == 0 ]]; then
+  print_usage
+  exit 0
+fi
+
+COMMAND="$1"
+shift
+
+# ARGS #
+while [[ $# > 0 ]]
+do
+  if [[ $1 == -* ]]; then
+    key="$1"
+    case ${key} in
+      -t|--ce-type)
+      CE_TYPE="$2"
+      shift
+      ;;
+      -s|--ce-schema)
+      CE_SCHEMA="$2"
+      shift
+      ;;
+      *)
+      echo "ERROR: Invalid option: [$1]"
+      exit 1
+      ;;
+    esac
+    shift
+  else
+    if [[ $NAME = "" ]]; then
+      NAME="$1"
+      shift
+    else
+      echo "ERROR: Invalid argument: [$1]"
+      exit 1
+    fi
+  fi
+done
+
+# COMMANDS #
+
+if [[ "${COMMAND}" == "init" ]]; then
+  init
+elif [[ "${COMMAND}" == "build" ]]; then
+  build
+elif [[ "${COMMAND}" == "run" ]]; then
+  run
+elif [[ "${COMMAND}" == "delete" ]]; then
+  delete
+else
+  echo "$COMMAND is an invalid command"
+  exit 1;
+fi
