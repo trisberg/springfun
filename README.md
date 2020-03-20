@@ -19,6 +19,18 @@ POC of a CLI for creating Spring Functions to run on Knative
 
 The `springfun` command can initialize Spring Boot based functions that will run on Knative serving. It also integrates with Knative Eventing and can initialize functions that can handle CloudEvents via a Trigger. It uses the CloudEvents Java SDK for managing the CloudEvents. If the Knative EventType resource specifies a JSON schema it will be used for generating a Java class for the CloudEvent payload.
 
+```
+$ springfun --help
+springfun is for Spring Functions on Knative
+version 0.0.1
+
+Commands:
+  init         Initialize a function
+  build        Build a function container
+  run          Run a function container
+  delete       Delete a function container
+```
+
 ## Installation
 
 copy the CLI script to your PATH:
