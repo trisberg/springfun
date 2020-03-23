@@ -1,0 +1,11 @@
+apiVersion: eventing.knative.dev/v1beta1
+kind: EventType
+metadata:
+  name: com.example.springnews
+  namespace: default
+spec:
+  type: com.example.springnews
+  source: https://spring.io/spring-news
+  schema: https://raw.githubusercontent.com/trisberg/springfun/master/types/spring-news.json
+  description: SpringNews type
+  broker: default

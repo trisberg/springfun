@@ -120,7 +120,7 @@ spec:
       type: $CE_TYPE
   subscriber:
     ref:
-     apiVersion: v1
+     apiVersion: serving.knative.dev/v1
      kind: Service
      name: $NAME
 EOF
