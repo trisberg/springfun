@@ -14,6 +14,18 @@ skaffold run --default-repo=$USER
 
 ## Testing
 
+Add a label to the namespace to have the eventing default broker start up:
+
+```
+kubectl label namespace default knative-eventing-injection=enabled
+```
+
+Verify that the broker is running:
+
+```
+kubectl -n default get broker.eventing.knative.dev default
+```
+
 Post to the default broker
 
 Start a `curl` pod:
@@ -79,6 +91,15 @@ NEWS: Optional[com.example.types.SpringNews@3374b44d[when=Mon Mar 23 16:21:30 GM
 ```
 ## Cleanup
 
+Delete the Knative service and triggers:
+
 ```sh
-springfun delete spring-event
+skaffold delete
+```
+
+Delete the default broker:
+
+```sh
+kubectl label namespace default knative-eventing-injection-
+kubectl delete broker.eventing.knative.dev/default
 ```
