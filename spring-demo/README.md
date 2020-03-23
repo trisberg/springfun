@@ -89,6 +89,7 @@ EVENT: Optional[com.example.types.SpringEvent@1c0bf3f1[releaseDate=Thu Mar 01 00
 2020-03-23 16:21:30.084  INFO 1 --- [or-http-epoll-4] c.f.c.c.BeanFactoryAwareFunctionRegistry : Looking up function 'news' with acceptedOutputTypes: []
 NEWS: Optional[com.example.types.SpringNews@3374b44d[when=Mon Mar 23 16:21:30 GMT 2020,headline=Spring Boot 2.0 Released,copy=Spring Boot version 2.0 was released on Mar 1, 2018]]
 ```
+
 ## Cleanup
 
 Delete the Knative service and triggers:

@@ -2,6 +2,11 @@
 
 VERSION="0.0.1"
 
+declare -a CE_TYPE
+declare -a A_FUN
+declare -a A_TYPE
+declare -a A_SCHEMA
+
 function print_usage() {
 cat <<EOF
 springfun is for Spring Functions on Knative
@@ -25,16 +30,36 @@ function init() {
     echo "ERROR: the $NAME function already exists"
     exit 1
   fi
-  if [[ $CE_SCHEMA == "" ]]; then
-    if [[ $CE_TYPE != "" ]]; then
-      echo "looking up schema via type $CE_TYPE"
-      CE_SCHEMA="$(kubectl get eventtype $CE_TYPE -n default -ojsonpath='{.spec.schema}')"
-      if [[ $CE_SCHEMA == "" ]]; then
-        echo "ERROR: unable to find schema, please use '--ce-schema' option"
+  if [[ ${#CE_TYPE[@]} > 0 ]]; then
+    for i in "${!CE_TYPE[@]}"; do 
+      INFO=(${CE_TYPE[$i]//:/ })
+      if [[ ${#INFO[@]} < 1 ]]; then
+        echo "ERROR: type not specified: ${CE_TYPE[$i]}"
         exit 1
       fi
-      echo "using schema: $CE_SCHEMA"
-    fi
+      A_TYPE+=(${INFO[0]})
+      if [[ ${INFO[1]} == "" ]]; then
+        A_FUN+=("fun${i}")
+      else
+        A_FUN+=(${INFO[1]})
+      fi
+      A_SCHEMA+=(${INFO[2]})
+      schema=(${INFO[2]})
+      if [[ $schema == "" ]]; then
+        type=${INFO[0]}
+        echo "looking up schema via type $type"
+        schema="$(kubectl get eventtype $type -n default -ojsonpath='{.spec.schema}')"
+        if [[ $schema == "" ]]; then
+          echo "ERROR: unable to find schema for $type"
+          exit 1
+        else
+          echo "using schema: $schema"
+          A_SCHEMA+=($schema)
+        fi
+      fi
+    done
+  else
+    A_FUN+=("fun")
   fi
   
   # start.spring.io
@@ -50,7 +75,7 @@ function init() {
    -d packageName=com.example.$NAME \
    -d baseDir=$NAME | tar -xzvf -
 
-  if [[ ! -z "$CE_SCHEMA" ]]; then
+  if [[ ${#A_TYPE[@]} > 0 ]]; then
     # CE dep
     mv $NAME/pom.xml $NAME/pom.xml.tmp
     sed "s/^	<\/dependencies>/		<dependency>+			<groupId>io.cloudevents<\/groupId>+			<artifactId>cloudevents-api<\/artifactId>+			<version>1.2.0<\/version>+		<\/dependency>+	<\/dependencies>/" $NAME/pom.xml.tmp | tr '+' '\n' > $NAME/pom.xml
@@ -65,8 +90,9 @@ function init() {
     mkdir -p $NAME/src/main/resources/schema
     pushd $PWD
     cd $NAME/src/main/resources/schema/
-    wget $CE_SCHEMA
-    SCHEMA_FILE=$(ls)
+    for i in "${!A_SCHEMA[@]}"; do
+      wget ${A_SCHEMA[$i]}
+    done
     popd
 
     # mapper
@@ -82,9 +108,15 @@ function init() {
   mv $MAIN_FILE $MAIN_FILE.tmp
   sed -i .bak "s/import org.springframework.boot.SpringApplication;/import java.util.function.Function;++import org.springframework.boot.SpringApplication;/" $MAIN_FILE.tmp
   sed -i .bak "s/import org.springframework.boot.autoconfigure.SpringBootApplication;/import org.springframework.boot.autoconfigure.SpringBootApplication;+import org.springframework.context.annotation.Bean;/" $MAIN_FILE.tmp
-  sed -i .bak "s/	public static void main(String\[\] args) {/	@Bean+	public Function<String, String> fun() {+		return (in) -> {+			return in;+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
   cat $MAIN_FILE.tmp | tr '+' '\n' > $MAIN_FILE
   rm $MAIN_FILE.tmp
+  for i in "${!A_FUN[@]}"; do
+    fun=${A_FUN[$i]}
+    mv $MAIN_FILE $MAIN_FILE.tmp
+    sed -i .bak "s/	public static void main(String\[\] args) {/	@Bean+	public Function<String, String> ${fun}() {+		return (in) -> {+			return in;+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
+    cat $MAIN_FILE.tmp | tr '+' '\n' > $MAIN_FILE
+    rm $MAIN_FILE.tmp
+  done
   rm $MAIN_FILE.tmp.bak
   popd
 
@@ -107,23 +139,29 @@ spec:
         - image: $NAME
 EOF
 
-if [[ ! -z "$CE_SCHEMA" ]]; then
-  # knative trigger
-cat <<EOF > $NAME/knative-trigger.yaml
+if [[ ${#A_TYPE[@]} > 0 ]]; then
+  for i in "${!A_FUN[@]}"; do
+    fun=${A_FUN[$i]}
+    type=${A_TYPE[$i]}
+    # knative trigger
+cat <<EOF >> $NAME/knative-trigger.yaml
+---
 apiVersion: eventing.knative.dev/v1beta1
 kind: Trigger
 metadata:
-  name: $NAME
+  name: $NAME-$fun
 spec:
   filter:
     attributes:
-      type: $CE_TYPE
+      type: $type
   subscriber:
     ref:
-     apiVersion: serving.knative.dev/v1
-     kind: Service
-     name: $NAME
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: $NAME
+    uri: $fun
 EOF
+  done
 fi
 
   # skaffold
@@ -201,11 +239,11 @@ do
     key="$1"
     case ${key} in
       -t|--ce-type)
-      CE_TYPE="$2"
+        CE_TYPE+=($2)
       shift
       ;;
       -s|--ce-schema)
-      CE_SCHEMA="$2"
+      CE_SCHEMA+=($2)
       shift
       ;;
       *)
