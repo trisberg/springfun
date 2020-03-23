@@ -1,0 +1,10 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: spring-demo
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - image: spring-demo

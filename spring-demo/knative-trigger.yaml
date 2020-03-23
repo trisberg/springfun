@@ -1,0 +1,29 @@
+apiVersion: eventing.knative.dev/v1beta1
+kind: Trigger
+metadata:
+  name: spring-event
+spec:
+  filter:
+    attributes:
+      type: com.example.springevent
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: spring-demo
+    uri: event
+---
+apiVersion: eventing.knative.dev/v1beta1
+kind: Trigger
+metadata:
+  name: spring-news
+spec:
+  filter:
+    attributes:
+      type: com.example.springnews
+  subscriber:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: spring-demo
+    uri: news

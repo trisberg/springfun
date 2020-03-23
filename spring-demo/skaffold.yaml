@@ -1,0 +1,18 @@
+apiVersion: skaffold/v2beta1
+kind: Config
+metadata:
+  name: spring-demo
+build:
+  local:
+    push: true
+  artifacts:
+    - image: spring-demo
+      buildpack:
+        builder: 'cloudfoundry/cnb:bionic'
+  tagPolicy:
+    sha256: {}
+deploy:
+  kubectl:
+    manifests:
+    - knative-service.yaml
+    - knative-trigger.yaml
