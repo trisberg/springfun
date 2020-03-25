@@ -46,8 +46,8 @@ Commands:
 copy the CLI script to your PATH:
 
 ```
-curl https://raw.githubusercontent.com/trisberg/springfun/master/springfun -o /usr/local/bin/springfun
-chmod +x /usr/local/bin/springfun
+sudo curl https://raw.githubusercontent.com/trisberg/springfun/master/springfun -o /usr/local/bin/springfun
+sudo chmod +x /usr/local/bin/springfun
 ```
 
 ## Configure Skaffold
