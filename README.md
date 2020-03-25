@@ -17,12 +17,13 @@ POC of a CLI for creating Spring Functions to run on Knative
 
 ## Features
 
-The `springfun` command can initialize Spring Boot based functions that will run on Knative serving. It also integrates with Knative Eventing via an `--ce-type` option and can initialize functions that can handle CloudEvents via a Trigger. It uses the CloudEvents Java SDK for managing the CloudEvents. The Knative EventType resource must specify a JSON schema that will be used for generating a Java class for the CloudEvent payload. You can specify multiple `--ce-type` options and you can append a function name seperated from the type using a `:`. 
+The `springfun` command can initialize Spring Boot based function app that will run on Knative serving. You can add new functions using the `add` command. It also integrates with Knative Eventing via an `--ce-type` option and can initialize functions that can handle CloudEvents via a Trigger. It uses the CloudEvents Java SDK for managing the CloudEvents. The Knative EventType resource must specify a JSON schema that will be used for generating a Java class for the CloudEvent payload. 
 
 Here is a `springfun` command example:
 
 ```
-springfun init test --ce-type com.example.test-type:test
+springfun init test
+springfun add test --function event --ce-type com.example.testevent
 ```
 
 Available commands are listed via the help text:
@@ -33,10 +34,11 @@ springfun is for Spring Functions on Knative
 version 0.0.1
 
 Commands:
-  init         Initialize a function
-  build        Build a function container
-  run          Run a function container
-  delete       Delete a function container
+  init         Initialize a function project
+  add          Add a function to the project
+  build        Build a function project container
+  run          Run a function project container
+  delete       Delete a function project container
 ```
 
 ## Installation
@@ -66,6 +68,7 @@ We'll create a function called `upper`:
 
 ```
 springfun init upper
+springfun add upper --function upper
 ```
 
 ### Write the function code
@@ -190,9 +193,9 @@ We'll pass in the name of the EventTypes when we init the function.
 During initialization the JSON schemas will get downloaded and added to the function so the build can generate a Java classes for the types.
 
 ```
-springfun init spring-demo \
-  --ce-type com.example.springevent:event \
-  --ce-type com.example.springnews:news
+springfun init spring-demo
+springfun add spring-demo --function event --ce-type com.example.springevent:event
+springfun add spring-demo --function news --ce-type com.example.springnews:news
 ```
 
 ### Write the function code
