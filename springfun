@@ -191,7 +191,7 @@ EOF
   rm $MAIN_FILE.tmp
   rm $MAIN_FILE.tmp.bak
   popd
-
+  echo "Added $FUN function bean to $MAIN_FILE"
 }  
 
 function build() {
