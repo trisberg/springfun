@@ -180,15 +180,16 @@ EOF
   beans_defined=$(grep -i '@Bean' $MAIN_FILE --count)
   if [[ $beans_defined == 0 ]]; then
     mv $MAIN_FILE $MAIN_FILE.tmp
-    sed -i "s/import org.springframework.boot.SpringApplication;/import java.util.function.Function;++import org.springframework.boot.SpringApplication;/" $MAIN_FILE.tmp
-    sed -i "s/import org.springframework.boot.autoconfigure.SpringBootApplication;/import org.springframework.boot.autoconfigure.SpringBootApplication;+import org.springframework.context.annotation.Bean;/" $MAIN_FILE.tmp
+    sed -i.bak "s/import org.springframework.boot.SpringApplication;/import java.util.function.Function;++import org.springframework.boot.SpringApplication;/" $MAIN_FILE.tmp
+    sed -i.bak "s/import org.springframework.boot.autoconfigure.SpringBootApplication;/import org.springframework.boot.autoconfigure.SpringBootApplication;+import org.springframework.context.annotation.Bean;/" $MAIN_FILE.tmp
     cat $MAIN_FILE.tmp | tr '+' '\n' > $MAIN_FILE
     rm $MAIN_FILE.tmp
   fi
   mv $MAIN_FILE $MAIN_FILE.tmp
-  sed -i "s/	public static void main(String\[\] args) {/	@Bean+	public Function<String, String> ${FUN}() {+		return (in) -> {+			return in;+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
+  sed -i.bak "s/	public static void main(String\[\] args) {/	@Bean+	public Function<String, String> ${FUN}() {+		return (in) -> {+			return in;+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
   cat $MAIN_FILE.tmp | tr '+' '\n' > $MAIN_FILE
   rm $MAIN_FILE.tmp
+  rm $MAIN_FILE.tmp.bak
   popd
 
 }  
