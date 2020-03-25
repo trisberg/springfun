@@ -46,7 +46,8 @@ Commands:
 copy the CLI script to your PATH:
 
 ```
-sudo curl https://raw.githubusercontent.com/trisberg/springfun/master/springfun -o /usr/local/bin/springfun
+sudo curl https://raw.githubusercontent.com/trisberg/springfun/master/springfun \
+ -o /usr/local/bin/springfun && \
 sudo chmod +x /usr/local/bin/springfun
 ```
 
