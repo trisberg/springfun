@@ -68,8 +68,7 @@ skaffold config set default-repo $USER
 We'll create a function called `upper`:
 
 ```
-springfun init upper
-springfun add upper --function upper
+springfun init upper --function upper
 ```
 
 ### Write the function code

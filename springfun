@@ -53,7 +53,23 @@ function init() {
     echo "ERROR: the $NAME project already exists"
     exit 1
   fi
-  
+  if [[ $CE_TYPE != "" ]]; then
+    if [[ $FUN == "" ]]; then
+      echo "ERROR: function name is required, use the '--function' option"
+      exit 1
+    fi
+  fi
+  if [[ $CE_SCHEMA != "" ]]; then
+    if [[ $FUN == "" ]]; then
+      echo "ERROR: function name is required, use the '--function' option"
+      exit 1
+    fi
+    if [[ $CE_TYPE == "" ]]; then
+      echo "ERROR: CludEvent type is required, use the '--ce-type' option"
+      exit 1
+    fi
+  fi
+
   # start.spring.io
   curl https://start.spring.io/starter.tgz \
    -d dependencies=webflux,actuator,cloud-function \
@@ -89,6 +105,10 @@ EOF
   rm ./skaffold.yaml.tmp
   cd ..
 
+  if [[ $FUN != "" ]]; then
+    add
+  fi
+
 }  
 
 function add() {
@@ -100,9 +120,15 @@ function add() {
     echo "ERROR: can not find the $NAME project"
     exit 1
   fi
-  if [[ $NAME == "" ]]; then
+  if [[ $FUN == "" ]]; then
     echo "ERROR: function name is required, use the '--function' option"
     exit 1
+  fi
+  if [[ $CE_SCHEMA != "" ]]; then
+    if [[ $CE_TYPE == "" ]]; then
+      echo "ERROR: CludEvent type is required, use the '--ce-type' option"
+      exit 1
+    fi
   fi
 
   ce_types
