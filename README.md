@@ -194,8 +194,8 @@ During initialization the JSON schemas will get downloaded and added to the func
 
 ```
 springfun init spring-demo
-springfun add spring-demo --function event --ce-type com.example.springevent:event
-springfun add spring-demo --function news --ce-type com.example.springnews:news
+springfun add spring-demo --function event --ce-type com.example.springevent
+springfun add spring-demo --function news --ce-type com.example.springnews
 ```
 
 ### Write the function code
