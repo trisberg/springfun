@@ -154,20 +154,20 @@ function add() {
       mkdir -p $NAME/src/main/java/com/springdeveloper/support/cloudevents
       curl https://raw.githubusercontent.com/trisberg/cloud-event-mapper/master/src/main/java/com/springdeveloper/support/cloudevents/CloudEventMapper.java \
         -o $NAME/src/main/java/com/springdeveloper/support/cloudevents/CloudEventMapper.java
-
-      # schema
-      mkdir -p $NAME/src/main/resources/schema
-      pushd $PWD
-      cd $NAME/src/main/resources/schema/
-      wget $CE_SCHEMA
-      popd
-
-        # resolve deps
-        cd $NAME
-        ./mvnw compile
-        cd ..
     fi
 
+    # schema
+    mkdir -p $NAME/src/main/resources/schema
+    pushd $PWD
+    cd $NAME/src/main/resources/schema/
+    wget $CE_SCHEMA
+    popd
+
+    # resolve deps
+    cd $NAME
+    ./mvnw compile
+    cd ..
+ 
   # knative trigger
 cat <<EOF >> $NAME/knative-trigger.yaml
 ---
