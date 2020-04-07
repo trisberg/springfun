@@ -193,7 +193,7 @@ EOF
       cd $NAME
       skaffold init --skip-build --force=true
       mv ./skaffold.yaml ./skaffold.yaml.tmp
-      sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpack:+        builder: 'cloudfoundry\/cnb:bionic'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
+      sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpack:+        builder: 'paketobuildpacks\/builder:bionic'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
       rm ./skaffold.yaml.tmp
       cd ..
     fi
