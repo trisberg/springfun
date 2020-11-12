@@ -9,9 +9,8 @@ POC of a CLI for creating Spring Functions to run on Knative
 * [Java 11 JDK](https://adoptopenjdk.net/installation.html?variant=openjdk11#)
 * [Skaffold](https://skaffold.dev/)
 * [Docker](https://www.docker.com/)
-* [pack CLI](https://buildpacks.io/docs/install-pack/) from the Cloud Native Buildpacks project
-* [Knative Serving](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-serving-component) installed with the networking layer for Contour
-* [Knative Eventing](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-eventing-component) installed
+* [Knative Serving](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-serving-component) installed v0.18 with the networking layer for Contour
+* [Knative Eventing](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-eventing-component) installed v0.18
 
 > NOTE: This POC has only been tested on macOS running in a Bash shell.
 
@@ -31,7 +30,7 @@ Available commands are listed via the help text:
 ```
 $ springfun --help
 springfun is for Spring Functions on Knative
-version 0.0.1
+version 0.0.2
 
 Commands:
   init         Initialize a function project
@@ -106,6 +105,12 @@ Look up ingress:
 INGRESS=$(kubectl get --namespace contour-external service/envoy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
+or (for Docker Desktop using NodePort)
+
+```
+INGRESS=$(kubectl get --namespace contour-external service/envoy -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'):$(kubectl get --namespace contour-external service/envoy -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}')
+```
+
 Invoke function with some data:
 
 ```
@@ -124,10 +129,16 @@ This function app will have two functions, each with its own trigger for a speci
 
 ### Configure eventing broker
 
-Add a label to the namespace to have the eventing default broker start up:
+Create the eventing default broker:
 
 ```
-kubectl label namespace default knative-eventing-injection=enabled
+kubectl create -f - <<EOF
+apiVersion: eventing.knative.dev/v1
+kind: Broker
+metadata:
+ name: default
+ namespace: default
+EOF
 ```
 
 Verify that the broker is running:
@@ -240,12 +251,11 @@ Next, modify the `news` function bean to be:
 
 ```java
 	@Bean
-	public Function<Message<JsonNode>, String> news() {
+	public Consumer<Message<JsonNode>> news() {
 		return (in) -> {
 			CloudEvent<AttributesImpl, SpringNews> cloudEvent = CloudEventMapper.convert(in, SpringNews.class);
 			String results = "NEWS: " + cloudEvent.getData();
 			System.out.println(results);
-			return "OK";
 		};
 	}
 ```
@@ -260,6 +270,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.example.types.SpringEvent;
@@ -307,12 +318,11 @@ public class SpringDemoApplication {
 	}
 
 	@Bean
-	public Function<Message<JsonNode>, String> news() {
+	public Consumer<Message<JsonNode>> news() {
 		return (in) -> {
 			CloudEvent<AttributesImpl, SpringNews> cloudEvent = CloudEventMapper.convert(in, SpringNews.class);
 			String results = "NEWS: " + cloudEvent.getData();
 			System.out.println(results);
-			return "OK";
 		};
 	}
 
@@ -339,6 +349,12 @@ Look up ingress:
 INGRESS=$(kubectl get --namespace contour-external service/envoy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
 
+or (for Docker Desktop using NodePort)
+
+```
+INGRESS=$(kubectl get --namespace contour-external service/envoy -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'):$(kubectl get --namespace contour-external service/envoy -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}')
+```
+
 Invoke function with some data:
 
 ```
@@ -363,13 +379,13 @@ kubectl logs -c user-container -l serving.knative.dev/configuration=spring-demo
 Start a `curl` pod:
 
 ```
-kubectl run curl --generator=run-pod/v1 --image=radial/busyboxplus:curl -i --tty --rm
+kubectl run curl --image=radial/busyboxplus:curl -i --tty --rm
 ```
 
 Post a few events:
 
 ```
-curl -v "http://default-broker.default.svc.cluster.local" \
+curl -v "http://broker-ingress.knative-eventing.svc.cluster.local/default/default" \
  -H "Ce-Specversion: 1.0" \
  -H "Ce-Type: com.example.springevent" \
  -H "Ce-Source: spring.io/spring-event" \
@@ -379,7 +395,7 @@ curl -v "http://default-broker.default.svc.cluster.local" \
 ```
 
 ```
-curl -v "http://default-broker.default.svc.cluster.local" \
+curl -v "http://broker-ingress.knative-eventing.svc.cluster.local/default/default" \
  -H "Ce-Specversion: 1.0" \
  -H "Ce-Type: com.example.springevent" \
  -H "Ce-Source: spring.io/spring-event" \
@@ -389,7 +405,7 @@ curl -v "http://default-broker.default.svc.cluster.local" \
 ```
 
 ```
-curl -v "http://default-broker.default.svc.cluster.local" \
+curl -v "http://broker-ingress.knative-eventing.svc.cluster.local/default/default" \
  -H "Ce-Specversion: 1.0" \
  -H "Ce-Type: com.example.springevent" \
  -H "Ce-Source: spring.io/spring-event" \
@@ -433,6 +449,5 @@ springfun delete spring-demo
 Delete the default broker:
 
 ```sh
-kubectl label namespace default knative-eventing-injection-
 kubectl delete broker.eventing.knative.dev/default
 ```

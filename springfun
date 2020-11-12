@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="0.0.1"
+VERSION="0.0.2"
 
 FUN=""
 CE_TYPE=""
@@ -75,7 +75,7 @@ function init() {
    -d dependencies=webflux,actuator,cloud-function \
    -d language=java \
    -d javaVersion=11 \
-   -d bootVersion=2.2.5.RELEASE \
+   -d bootVersion=2.4.0-SNAPSHOT \
    -d type=maven-project \
    -d groupId=com.example \
    -d artifactId=$NAME \
@@ -101,7 +101,7 @@ EOF
   cd $NAME
   skaffold init --skip-build --force=true
   mv ./skaffold.yaml ./skaffold.yaml.tmp
-  sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpack:+        builder: 'paketobuildpacks\/builder:bionic'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
+  sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpack:+        builder: 'paketobuildpacks\/builder:base'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
   rm ./skaffold.yaml.tmp
   cd ..
 
@@ -142,7 +142,7 @@ function add() {
       echo "CE dep: $ce_defined"
       # CE dep
       mv $NAME/pom.xml $NAME/pom.xml.tmp
-      sed "s/^	<\/dependencies>/		<dependency>+			<groupId>io.cloudevents<\/groupId>+			<artifactId>cloudevents-api<\/artifactId>+			<version>1.2.0<\/version>+		<\/dependency>+	<\/dependencies>/" $NAME/pom.xml.tmp | tr '+' '\n' > $NAME/pom.xml
+      sed "s/^	<\/dependencies>/		<dependency>+			<groupId>io.cloudevents<\/groupId>+			<artifactId>cloudevents-api<\/artifactId>+			<version>1.3.0<\/version>+		<\/dependency>+	<\/dependencies>/" $NAME/pom.xml.tmp | tr '+' '\n' > $NAME/pom.xml
       rm $NAME/pom.xml.tmp
 
       # jsonschema2pojo
@@ -171,11 +171,12 @@ function add() {
   # knative trigger
 cat <<EOF >> $NAME/knative-trigger.yaml
 ---
-apiVersion: eventing.knative.dev/v1beta1
+apiVersion: eventing.knative.dev/v1
 kind: Trigger
 metadata:
   name: $NAME-$FUN
 spec:
+  broker: default
   filter:
     attributes:
       type: $CE_TYPE
@@ -191,9 +192,10 @@ EOF
     trigger_defined=$(grep -i 'knative-trigger' $NAME/skaffold.yaml --count)
     if [[ $trigger_defined == 0 ]]; then
       cd $NAME
+      rm ./skaffold.yaml
       skaffold init --skip-build --force=true
       mv ./skaffold.yaml ./skaffold.yaml.tmp
-      sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpack:+        builder: 'paketobuildpacks\/builder:bionic'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
+      sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpacks:+        builder: 'paketobuildpacks\/builder:bionic'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
       rm ./skaffold.yaml.tmp
       cd ..
     fi
