@@ -2,9 +2,7 @@ package com.example.springdemo;
 
 import java.text.DateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -15,7 +13,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 
 @SpringBootApplication
@@ -27,12 +24,6 @@ public class SpringDemoApplication {
 			SpringEvent event = in.getPayload();
 			System.out.println("EVENT: " + event);
 			// create return CloudEvent
-			Map<String, Object> headerMap = new HashMap<>();
-			headerMap.put("ce-specversion", "1.0");
-			headerMap.put("ce-type", "com.example.springnews");
-			headerMap.put("ce-source", "spring.io/spring-news");
-			headerMap.put("ce-id", in.getHeaders().get("ce-id"));
-			MessageHeaders headers = new MessageHeaders(headerMap);
 			SpringNews news = new SpringNews();
 			news.setWhen(new Date());
 			news.setHeadline(event.getReleaseName() + " " + event.getVersion() + " Released");
@@ -41,7 +32,12 @@ public class SpringDemoApplication {
 			String releaseDate = dateFormat.format(event.getReleaseDate());
 			String copy = event.getReleaseName() + " version " + event.getVersion() + " was released on " + releaseDate;
 			news.setCopy(copy);
-			return MessageBuilder.createMessage(news, headers);
+			return MessageBuilder.withPayload(news)
+					.setHeader("ce-specversion", "1.0")
+					.setHeader("ce-type", "com.example.springnews")
+					.setHeader("ce-source", "spring.io/spring-news")
+					.setHeader("ce-id", in.getHeaders().get("ce-id"))
+					.build();
 		};
 	}
 
