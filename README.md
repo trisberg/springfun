@@ -202,11 +202,12 @@ kubectl apply -f https://raw.githubusercontent.com/trisberg/springfun/master/con
 
 We'll pass in the name of the EventTypes when we init the function.
 During initialization the JSON schemas will get downloaded and added to the function so the build can generate a Java classes for the types.
+We also add a function to process the `springevent` event type and generate a `springnews` event that gets routed to the `news` consumer.
 
 ```
 springfun init spring-demo
 springfun add spring-demo --function event --ce-type com.example.springevent
-springfun add spring-demo --function news --ce-type com.example.springnews
+springfun add spring-demo --consumer news --ce-type com.example.springnews
 ```
 
 ### Write the function code
@@ -247,7 +248,7 @@ Modify the `event` function bean to be:
 	}
 ```
 
-Next, modify the `news` function bean to be:
+Next, modify the `news` consumer bean to be:
 
 ```java
 	@Bean

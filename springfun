@@ -3,6 +3,7 @@
 VERSION="0.0.2"
 
 FUN=""
+CONSUMER=false
 CE_TYPE=""
 CE_SCHEMA=""
 
@@ -13,7 +14,7 @@ version $VERSION
 
 Commands:
   init         Initialize a function project
-  add          Add a function to the project
+  add          Add a function or consumer to the project
   build        Build a function project container
   run          Run a function project container
   delete       Delete a function project container
@@ -208,13 +209,18 @@ EOF
   beans_defined=$(grep -i '@Bean' $MAIN_FILE --count)
   if [[ $beans_defined == 0 ]]; then
     mv $MAIN_FILE $MAIN_FILE.tmp
-    sed -i.bak "s/import org.springframework.boot.SpringApplication;/import java.util.function.Function;++import org.springframework.boot.SpringApplication;/" $MAIN_FILE.tmp
+    sed -i.bak "s/import org.springframework.boot.SpringApplication;/import java.util.function.Consumer;+import java.util.function.Function;++import org.springframework.boot.SpringApplication;/" $MAIN_FILE.tmp
     sed -i.bak "s/import org.springframework.boot.autoconfigure.SpringBootApplication;/import org.springframework.boot.autoconfigure.SpringBootApplication;+import org.springframework.context.annotation.Bean;/" $MAIN_FILE.tmp
     cat $MAIN_FILE.tmp | tr '+' '\n' > $MAIN_FILE
     rm $MAIN_FILE.tmp
   fi
   mv $MAIN_FILE $MAIN_FILE.tmp
-  sed -i.bak "s/	public static void main(String\[\] args) {/	@Bean+	public Function<String, String> ${FUN}() {+		return (in) -> {+			return in;+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
+  echo "CONSUMER IS $CONSUMER"
+  if [[ $CONSUMER == true ]]; then
+    sed -i.bak "s/	public static void main(String\[\] args) {/	@Bean+	public Consumer<String> ${FUN}() {+		return (in) -> {+			System.out.println(in.toString());+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
+  else
+    sed -i.bak "s/	public static void main(String\[\] args) {/	@Bean+	public Function<String, String> ${FUN}() {+		return (in) -> {+			return in;+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
+  fi
   cat $MAIN_FILE.tmp | tr '+' '\n' > $MAIN_FILE
   rm $MAIN_FILE.tmp
   rm $MAIN_FILE.tmp.bak
@@ -287,6 +293,12 @@ do
     key="$1"
     case ${key} in
       -f|--function)
+        CONSUMER=false
+        FUN=$2
+      shift
+      ;;
+      -c|--consumer)
+        CONSUMER=true
         FUN=$2
       shift
       ;;

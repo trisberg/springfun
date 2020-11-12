@@ -5,12 +5,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
+import com.example.types.SpringEvent;
 import com.example.types.SpringNews;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.springdeveloper.support.cloudevents.CloudEventMapper;
-import com.example.types.SpringEvent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -52,12 +53,11 @@ public class SpringDemoApplication {
 	}
 
 	@Bean
-	public Function<Message<JsonNode>, String> news() {
+	public Consumer<Message<JsonNode>> news() {
 		return (in) -> {
 			CloudEvent<AttributesImpl, SpringNews> cloudEvent = CloudEventMapper.convert(in, SpringNews.class);
 			String results = "NEWS: " + cloudEvent.getData();
 			System.out.println(results);
-			return "OK";
 		};
 	}
 

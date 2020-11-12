@@ -1,4 +1,4 @@
-apiVersion: skaffold/v2beta1
+apiVersion: skaffold/v2beta9
 kind: Config
 metadata:
   name: spring-demo
@@ -7,8 +7,8 @@ build:
     push: true
   artifacts:
     - image: spring-demo
-      buildpack:
-        builder: 'cloudfoundry/cnb:bionic'
+      buildpacks:
+        builder: 'paketobuildpacks/builder:bionic'
   tagPolicy:
     sha256: {}
 deploy:
