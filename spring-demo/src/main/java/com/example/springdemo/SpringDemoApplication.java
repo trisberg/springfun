@@ -10,8 +10,6 @@ import java.util.function.Function;
 
 import com.example.types.SpringEvent;
 import com.example.types.SpringNews;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.springdeveloper.support.cloudevents.CloudEventMapper;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -20,25 +18,20 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 
-import io.cloudevents.CloudEvent;
-import io.cloudevents.v03.AttributesImpl;
-
 @SpringBootApplication
 public class SpringDemoApplication {
 
 	@Bean
-	public Function<Message<JsonNode>, Message<SpringNews>> event() {
+	public Function<Message<SpringEvent>, Message<SpringNews>> event() {
 		return (in) -> {
-			CloudEvent<AttributesImpl, SpringEvent> cloudEvent = CloudEventMapper.convert(in, SpringEvent.class);
-			String results = "EVENT: " + cloudEvent.getData();
-			System.out.println(results);
+			SpringEvent event = in.getPayload();
+			System.out.println("EVENT: " + event);
 			// create return CloudEvent
-			SpringEvent event = cloudEvent.getData().get();
 			Map<String, Object> headerMap = new HashMap<>();
 			headerMap.put("ce-specversion", "1.0");
 			headerMap.put("ce-type", "com.example.springnews");
 			headerMap.put("ce-source", "spring.io/spring-news");
-			headerMap.put("ce-id", cloudEvent.getAttributes().getId());
+			headerMap.put("ce-id", in.getHeaders().get("ce-id"));
 			MessageHeaders headers = new MessageHeaders(headerMap);
 			SpringNews news = new SpringNews();
 			news.setWhen(new Date());
@@ -53,11 +46,10 @@ public class SpringDemoApplication {
 	}
 
 	@Bean
-	public Consumer<Message<JsonNode>> news() {
+	public Consumer<Message<SpringNews>> news() {
 		return (in) -> {
-			CloudEvent<AttributesImpl, SpringNews> cloudEvent = CloudEventMapper.convert(in, SpringNews.class);
-			String results = "NEWS: " + cloudEvent.getData();
-			System.out.println(results);
+			SpringNews news = in.getPayload();
+			System.out.println("NEWS: " + news);
 		};
 	}
 

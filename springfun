@@ -150,11 +150,6 @@ function add() {
       mv $NAME/pom.xml $NAME/pom.xml.tmp
       sed "s/^		<\/plugins>/			<plugin>+				<groupId>org.jsonschema2pojo<\/groupId>+				<artifactId>jsonschema2pojo-maven-plugin<\/artifactId>+				<version>1.0.2<\/version>+				<configuration>+					<sourceDirectory>\${basedir}\/src\/main\/resources\/schema<\/sourceDirectory>+					<targetPackage>com.example.types<\/targetPackage>+				<\/configuration>+				<executions>+					<execution>+						<goals>+							<goal>generate<\/goal>+						<\/goals>+					<\/execution>+				<\/executions>+			<\/plugin>+		<\/plugins>/" $NAME/pom.xml.tmp | tr '+' '\n' > $NAME/pom.xml
       rm $NAME/pom.xml.tmp
-
-      # mapper
-      mkdir -p $NAME/src/main/java/com/springdeveloper/support/cloudevents
-      curl https://raw.githubusercontent.com/trisberg/cloud-event-mapper/master/src/main/java/com/springdeveloper/support/cloudevents/CloudEventMapper.java \
-        -o $NAME/src/main/java/com/springdeveloper/support/cloudevents/CloudEventMapper.java
     fi
 
     # schema
@@ -225,7 +220,7 @@ EOF
   rm $MAIN_FILE.tmp
   rm $MAIN_FILE.tmp.bak
   popd
-  echo "Added $FUN function bean to $MAIN_FILE"
+  echo "Added $FUN bean to $MAIN_FILE"
 }  
 
 function build() {

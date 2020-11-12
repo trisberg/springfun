@@ -16,7 +16,10 @@ POC of a CLI for creating Spring Functions to run on Knative
 
 ## Features
 
-The `springfun` command can initialize Spring Boot based function app that will run on Knative serving. You can add new functions using the `add` command. It also integrates with Knative Eventing via an `--ce-type` option and can initialize functions that can handle CloudEvents via a Trigger. It uses the CloudEvents Java SDK for managing the CloudEvents. The Knative EventType resource must specify a JSON schema that will be used for generating a Java class for the CloudEvent payload. 
+The `springfun` command can initialize Spring Boot based function app that will run on Knative serving.
+You can add new functions using the `add` command. It also integrates with Knative Eventing via an `--ce-type` option and can initialize functions that can handle CloudEvents via a Trigger.
+It uses the new Spring Cloud Function support for handling the CloudEvents.
+The Knative EventType resource must specify a JSON schema that will be used for generating a Java class for the CloudEvent payload. 
 
 Here is a `springfun` command example:
 
@@ -222,18 +225,16 @@ Modify the `event` function bean to be:
 
 ```java
 	@Bean
-	public Function<Message<JsonNode>, Message<SpringNews>> event() {
+	public Function<Message<SpringEvent>, Message<SpringNews>> event() {
 		return (in) -> {
-			CloudEvent<AttributesImpl, SpringEvent> cloudEvent = CloudEventMapper.convert(in, SpringEvent.class);
-			String results = "EVENT: " + cloudEvent.getData();
-			System.out.println(results);
+			SpringEvent event = in.getPayload();
+			System.out.println("EVENT: " + event);
 			// create return CloudEvent
-			SpringEvent event = cloudEvent.getData().get();
 			Map<String, Object> headerMap = new HashMap<>();
 			headerMap.put("ce-specversion", "1.0");
 			headerMap.put("ce-type", "com.example.springnews");
 			headerMap.put("ce-source", "spring.io/spring-news");
-			headerMap.put("ce-id", cloudEvent.getAttributes().getId());
+			headerMap.put("ce-id", in.getHeaders().get("ce-id"));
 			MessageHeaders headers = new MessageHeaders(headerMap);
 			SpringNews news = new SpringNews();
 			news.setWhen(new Date());
@@ -252,11 +253,10 @@ Next, modify the `news` consumer bean to be:
 
 ```java
 	@Bean
-	public Consumer<Message<JsonNode>> news() {
+	public Consumer<Message<SpringNews>> news() {
 		return (in) -> {
-			CloudEvent<AttributesImpl, SpringNews> cloudEvent = CloudEventMapper.convert(in, SpringNews.class);
-			String results = "NEWS: " + cloudEvent.getData();
-			System.out.println(results);
+			SpringNews news = in.getPayload();
+			System.out.println("NEWS: " + news);
 		};
 	}
 ```
@@ -276,8 +276,6 @@ import java.util.function.Function;
 
 import com.example.types.SpringEvent;
 import com.example.types.SpringNews;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.springdeveloper.support.cloudevents.CloudEventMapper;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -286,25 +284,20 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 
-import io.cloudevents.CloudEvent;
-import io.cloudevents.v03.AttributesImpl;
-
 @SpringBootApplication
 public class SpringDemoApplication {
 
 	@Bean
-	public Function<Message<JsonNode>, Message<SpringNews>> event() {
+	public Function<Message<SpringEvent>, Message<SpringNews>> event() {
 		return (in) -> {
-			CloudEvent<AttributesImpl, SpringEvent> cloudEvent = CloudEventMapper.convert(in, SpringEvent.class);
-			String results = "EVENT: " + cloudEvent.getData();
-			System.out.println(results);
+			SpringEvent event = in.getPayload();
+			System.out.println("EVENT: " + event);
 			// create return CloudEvent
-			SpringEvent event = cloudEvent.getData().get();
 			Map<String, Object> headerMap = new HashMap<>();
 			headerMap.put("ce-specversion", "1.0");
 			headerMap.put("ce-type", "com.example.springnews");
 			headerMap.put("ce-source", "spring.io/spring-news");
-			headerMap.put("ce-id", cloudEvent.getAttributes().getId());
+			headerMap.put("ce-id", in.getHeaders().get("ce-id"));
 			MessageHeaders headers = new MessageHeaders(headerMap);
 			SpringNews news = new SpringNews();
 			news.setWhen(new Date());
@@ -319,11 +312,10 @@ public class SpringDemoApplication {
 	}
 
 	@Bean
-	public Consumer<Message<JsonNode>> news() {
+	public Consumer<Message<SpringNews>> news() {
 		return (in) -> {
-			CloudEvent<AttributesImpl, SpringNews> cloudEvent = CloudEventMapper.convert(in, SpringNews.class);
-			String results = "NEWS: " + cloudEvent.getData();
-			System.out.println(results);
+			SpringNews news = in.getPayload();
+			System.out.println("NEWS: " + news);
 		};
 	}
 
