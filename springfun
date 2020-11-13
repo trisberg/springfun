@@ -76,7 +76,7 @@ function init() {
    -d dependencies=webflux,actuator,cloud-function \
    -d language=java \
    -d javaVersion=11 \
-   -d bootVersion=2.4.0-SNAPSHOT \
+   -d bootVersion=2.4.0 \
    -d type=maven-project \
    -d groupId=com.example \
    -d artifactId=$NAME \
