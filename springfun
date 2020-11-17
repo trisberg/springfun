@@ -102,7 +102,7 @@ EOF
   cd $NAME
   skaffold init --skip-build --force=true
   mv ./skaffold.yaml ./skaffold.yaml.tmp
-  sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpack:+        builder: 'paketobuildpacks\/builder:base'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
+  sed "s/deploy:/build:+  local:+    push: true+  artifacts:+    - image: $NAME+      buildpacks:+        builder: 'paketobuildpacks\/builder:base'+  tagPolicy:+    sha256: {}+deploy:/" ./skaffold.yaml.tmp | tr '+' '\n' > ./skaffold.yaml
   rm ./skaffold.yaml.tmp
   cd ..
 
@@ -210,7 +210,6 @@ EOF
     rm $MAIN_FILE.tmp
   fi
   mv $MAIN_FILE $MAIN_FILE.tmp
-  echo "CONSUMER IS $CONSUMER"
   if [[ $CONSUMER == true ]]; then
     sed -i.bak "s/	public static void main(String\[\] args) {/	@Bean+	public Consumer<String> ${FUN}() {+		return (in) -> {+			System.out.println(in.toString());+		};+	}++	public static void main(String\[\] args) {/" $MAIN_FILE.tmp
   else
